@@ -22,7 +22,7 @@
     <PackageId>VaultMcp</PackageId>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>vaultmcp</ToolCommandName>
-    <Version>0.1.2</Version>
+    <Version>0.2.0</Version>
     <Authors>chrismo80</Authors>
     <Description>Local-first MCP server for markdown knowledge bases.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
