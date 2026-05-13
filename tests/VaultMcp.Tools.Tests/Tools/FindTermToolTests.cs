@@ -13,11 +13,11 @@ public sealed class FindTermToolTests
     {
         var results = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 1200)
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 1200)
         };
 
         var tool = new FindTermTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
             termResults: results));
 

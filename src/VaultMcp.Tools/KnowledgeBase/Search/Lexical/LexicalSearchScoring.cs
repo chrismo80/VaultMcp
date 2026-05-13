@@ -13,9 +13,9 @@ internal static class LexicalSearchScoring
         var pathScore = ScorePath(note.RelativePath, normalizedQuery, queryTerms, Scoring.Path);
         var titleScore = ScoreText(note.Title, normalizedQuery, queryTerms, options.Title);
         var headingScore = ScoreList(note.Headings, normalizedQuery, queryTerms, options.Headings);
-        var aliasScore = ScoreList(note.Frontmatter.Aliases, normalizedQuery, queryTerms, options.Aliases);
-        var tagScore = ScoreList(note.Frontmatter.Tags, normalizedQuery, queryTerms, options.Tags);
-        var kindScore = ScoreSingle(note.Frontmatter.Kind, normalizedQuery, options.Kind);
+        var aliasScore = ScoreList(note.Metadata.Aliases, normalizedQuery, queryTerms, options.Aliases);
+        var tagScore = ScoreList(note.Metadata.Tags, normalizedQuery, queryTerms, options.Tags);
+        var kindScore = ScoreSingle(note.Metadata.Kind, normalizedQuery, options.Kind);
         var contentScore = ScoreContent(note.BodyContent, normalizedQuery, queryTerms, options.Content);
         return pathScore + titleScore + headingScore + aliasScore + tagScore + kindScore + contentScore;
     }
@@ -31,15 +31,15 @@ internal static class LexicalSearchScoring
         score += ScoreText(note.Title, normalizedQuery, queryTerms, options.Title);
         score += ScoreFileName(fileName, normalizedQuery, options.FileName);
         score += ScorePath(note.RelativePath, normalizedQuery, queryTerms, Scoring.Path);
-        score += ScoreList(note.Frontmatter.Aliases, normalizedQuery, queryTerms, options.Aliases);
+        score += ScoreList(note.Metadata.Aliases, normalizedQuery, queryTerms, options.Aliases);
         score += ScoreList(note.Headings, normalizedQuery, queryTerms, options.Headings);
-        score += ScoreList(note.Frontmatter.Tags, normalizedQuery, queryTerms, options.Tags);
-        score += ScoreSingle(note.Frontmatter.Kind, normalizedQuery, options.Kind);
-        if (string.Equals(note.Frontmatter.Kind, "term", StringComparison.OrdinalIgnoreCase))
+        score += ScoreList(note.Metadata.Tags, normalizedQuery, queryTerms, options.Tags);
+        score += ScoreSingle(note.Metadata.Kind, normalizedQuery, options.Kind);
+        if (string.Equals(note.Metadata.Kind, "term", StringComparison.OrdinalIgnoreCase))
         {
             score += options.TermKindBoost;
 
-            if (note.Frontmatter.Aliases.Any(alias => alias.NormalizeForComparison().Equals(normalizedQuery, StringComparison.OrdinalIgnoreCase)))
+            if (note.Metadata.Aliases.Any(alias => alias.NormalizeForComparison().Equals(normalizedQuery, StringComparison.OrdinalIgnoreCase)))
                 score += options.ExactAliasOnTermBoost;
         }
 
@@ -52,9 +52,9 @@ internal static class LexicalSearchScoring
         var options = Scoring.RelatedNotes;
         var score = 0;
 
-        if (source.Frontmatter.Related.Contains(candidate.RelativePath, StringComparer.OrdinalIgnoreCase))
+        if (source.Metadata.Related.Contains(candidate.RelativePath, StringComparer.OrdinalIgnoreCase))
             score += options.ExplicitRelatedBoost;
-        if (candidate.Frontmatter.Related.Contains(source.RelativePath, StringComparer.OrdinalIgnoreCase))
+        if (candidate.Metadata.Related.Contains(source.RelativePath, StringComparer.OrdinalIgnoreCase))
             score += options.ExplicitRelatedBoost;
 
         var sharedTerms = source.ExtractedTerms.Intersect(candidate.ExtractedTerms, StringComparer.OrdinalIgnoreCase)
@@ -76,9 +76,9 @@ internal static class LexicalSearchScoring
             score += options.SameDirectoryBoost;
         }
 
-        var sharedTags = source.Frontmatter.Tags.Intersect(candidate.Frontmatter.Tags, StringComparer.OrdinalIgnoreCase).Count();
+        var sharedTags = source.Metadata.Tags.Intersect(candidate.Metadata.Tags, StringComparer.OrdinalIgnoreCase).Count();
         score += sharedTags * options.SharedTagBoost;
-        score += ScoreKindAffinity(source.Frontmatter.Kind, candidate.Frontmatter.Kind);
+        score += ScoreKindAffinity(source.Metadata.Kind, candidate.Metadata.Kind);
 
         return score;
     }

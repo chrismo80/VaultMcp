@@ -1,7 +1,6 @@
 using VaultMcp.Tools.KnowledgeBase;
 using VaultMcp.Tools.KnowledgeBase.Search.Lexical;
 using VaultMcp.Tools.KnowledgeBase.SemanticIndex;
-using VaultMcp.Tools.KnowledgeBase.Vault.Markdown;
 
 namespace VaultMcp.Tools.Tools;
 
@@ -23,7 +22,8 @@ public sealed record VaultContextNote(
     string Content,
     bool IsTruncated = false,
     string? Kind = null,
-    IReadOnlyList<string>? Aliases = null);
+    IReadOnlyList<string>? Aliases = null,
+    VaultStructuredContent? Structured = null);
 
 internal static class VaultToolPayloads
 {
@@ -41,18 +41,17 @@ internal static class VaultToolPayloads
 
     public static VaultContextNote FromDocument(VaultNoteDocument note)
     {
-        var parsed = VaultMarkdownParser.Parse(note.Content, note.Title);
         var aliases = note.Aliases is { Count: > 0 } ? note.Aliases : null;
-        return new VaultContextNote(note.Path, note.Title, parsed.BodyContent, note.IsTruncated, note.Kind, aliases);
+        return new VaultContextNote(note.Path, note.Title, note.Content.Trim(), note.IsTruncated, note.Kind, aliases, note.Structured);
     }
 
     public static VaultContextNote FromContextDocument(VaultNoteDocument note, string query, int maxChars)
     {
-        var parsed = VaultMarkdownParser.Parse(note.Content, note.Title);
         var aliases = note.Aliases is { Count: > 0 } ? note.Aliases : null;
-        var content = BuildContextSnippet(parsed.BodyContent, query, maxChars);
-        var isTruncated = note.IsTruncated || !string.Equals(content, parsed.BodyContent, StringComparison.Ordinal);
-        return new VaultContextNote(note.Path, note.Title, content, isTruncated, note.Kind, aliases);
+        var normalizedContent = note.Content.Trim();
+        var content = BuildContextSnippet(normalizedContent, query, maxChars);
+        var isTruncated = note.IsTruncated || !string.Equals(content, normalizedContent, StringComparison.Ordinal);
+        return new VaultContextNote(note.Path, note.Title, content, isTruncated, note.Kind, aliases, note.Structured);
     }
 
     public static IReadOnlyList<VaultContextNote> FromDocuments(IEnumerable<VaultNoteDocument> notes)

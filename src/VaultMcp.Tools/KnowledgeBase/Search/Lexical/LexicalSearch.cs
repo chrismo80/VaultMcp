@@ -32,8 +32,8 @@ internal sealed class LexicalSearch : ISearch
                 x.Candidate.Title,
                 x.Candidate.BodyContent.BuildExcerpt(source.FindBestSharedTerm(x.Candidate) ?? x.Candidate.Title),
                 x.Score,
-                x.Candidate.Frontmatter.Kind,
-                x.Candidate.Frontmatter.Tags))
+                x.Candidate.Metadata.Kind,
+                x.Candidate.Metadata.Tags))
             .ToArray();
     }
 
@@ -60,8 +60,8 @@ internal sealed class LexicalSearch : ISearch
                 x.Note.Title,
                 x.Note.BodyContent.BuildExcerpt(query),
                 x.Score,
-                x.Note.Frontmatter.Kind,
-                x.Note.Frontmatter.Tags))
+                x.Note.Metadata.Kind,
+                x.Note.Metadata.Tags))
             .ToArray();
     }
 }

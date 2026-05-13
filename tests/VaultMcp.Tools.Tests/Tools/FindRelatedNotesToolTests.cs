@@ -13,19 +13,19 @@ public sealed class FindRelatedNotesToolTests
     {
         var results = new[]
         {
-            new VaultSearchResult("workflows/invoice-correction.md", "Invoice Correction Flow", "…invoice correction…", 310)
+            new VaultSearchResult("workflows/invoice-correction.json", "Invoice Correction Flow", "…invoice correction…", 310)
         };
 
         var tool = new FindRelatedNotesTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 2, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 2, [".json"]),
             [],
             relatedResults: results));
 
-        var response = tool.Execute("workflows/invoice-flow.md");
+        var response = tool.Execute("workflows/invoice-flow.json");
 
         response.Error.IsNull();
         response.Results.Count.Is(1);
-        response.Results[0].Path.Is("workflows/invoice-correction.md");
+        response.Results[0].Path.Is("workflows/invoice-correction.json");
         response.Results[0].Excerpt.Is("…invoice correction…");
     }
 }

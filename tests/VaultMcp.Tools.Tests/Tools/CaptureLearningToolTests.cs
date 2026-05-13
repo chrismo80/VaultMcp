@@ -2,7 +2,7 @@ using Is.Assertions;
 using VaultMcp.Tools.KnowledgeBase;
 using VaultMcp.Tools.KnowledgeBase.SemanticIndex;
 using VaultMcp.Tools.KnowledgeBase.Vault;
-using VaultMcp.Tools.KnowledgeBase.Vault.Markdown;
+using VaultMcp.Tools.KnowledgeBase.Vault.Json;
 using VaultMcp.Tools.Tools;
 using Xunit;
 
@@ -13,9 +13,9 @@ public sealed class CaptureLearningToolTests
     [Fact]
     public void Execute_returns_capture_result_from_vault()
     {
-        var captureResult = new VaultCaptureResult("glossary/order.md", "Order", "term", true, false, false, "Created new knowledge note.");
+        var captureResult = new VaultCaptureResult("glossary/order.json", "Order", "term", true, false, false, "Created new knowledge note.");
         var stub = new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
             captureResult: captureResult);
         var tool = new CaptureLearningTool(stub);
@@ -30,7 +30,7 @@ public sealed class CaptureLearningToolTests
             examples: ["Used in checkout", "Used in invoice creation"]);
 
         result.Error.IsNull();
-        result.Result!.Path.Is("glossary/order.md");
+        result.Result!.Path.Is("glossary/order.json");
         result.Result.Kind.Is("term");
         result.Result.Created.IsTrue();
 
@@ -42,9 +42,9 @@ public sealed class CaptureLearningToolTests
     [Fact]
     public void Execute_ignores_unavailable_semantic_provider_for_successful_capture()
     {
-        var captureResult = new VaultCaptureResult("glossary/order.md", "Order", "term", true, false, false, "Created new knowledge note.");
+        var captureResult = new VaultCaptureResult("glossary/order.json", "Order", "term", true, false, false, "Created new knowledge note.");
         var stub = new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
             captureResult: captureResult);
         var semanticIndex = new StubSemanticIndex(
@@ -57,7 +57,7 @@ public sealed class CaptureLearningToolTests
         result.Error.IsNull();
         result.Result!.Created.IsTrue();
         result.IndexError.IsNull();
-        semanticIndex.LastUpsertPath.Is("glossary/order.md");
+        semanticIndex.LastUpsertPath.Is("glossary/order.json");
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public sealed class CaptureLearningToolTests
 
         try
         {
-            var tool = new CaptureLearningTool(new MarkdownVault(root));
+            var tool = new CaptureLearningTool(new JsonVault(root));
 
             var result = tool.Execute("invalid-kind", "Order", "Summary");
 

@@ -24,13 +24,13 @@
     <ToolCommandName>vaultmcp</ToolCommandName>
     <Version>0.2.0</Version>
     <Authors>chrismo80</Authors>
-    <Description>Local-first MCP server for markdown knowledge bases.</Description>
+    <Description>Local-first MCP server for structured JSON knowledge bases.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/chrismo80/VaultMcp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/chrismo80/VaultMcp</RepositoryUrl>
     <PackageOutputPath>../../.nupkg</PackageOutputPath>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>mcp;dotnet;knowledge-base;markdown;agent</PackageTags>
+    <PackageTags>mcp;dotnet;knowledge-base;json;agent</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

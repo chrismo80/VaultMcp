@@ -18,7 +18,31 @@ public sealed record VaultNoteDocument(
     string? Kind = null,
     IReadOnlyList<string>? Tags = null,
     IReadOnlyList<string>? Aliases = null,
-    IReadOnlyList<string>? Headings = null);
+    IReadOnlyList<string>? Headings = null,
+    VaultStructuredContent? Structured = null,
+    string? Summary = null,
+    string? Details = null);
+
+public sealed record VaultStructuredContent(
+    IReadOnlyDictionary<string, string>? Scalars = null,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? Lists = null,
+    IReadOnlyList<VaultSection>? Sections = null,
+    IReadOnlyList<VaultStructuredLearning>? Learnings = null);
+
+public sealed record VaultSection(
+    string Id,
+    string Title,
+    string Type,
+    string? Content = null,
+    IReadOnlyList<string>? Items = null);
+
+public sealed record VaultStructuredLearning(
+    string Hash,
+    DateTimeOffset CapturedAt,
+    string Summary,
+    string? Details = null,
+    IReadOnlyDictionary<string, string>? Scalars = null,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? Lists = null);
 
 public sealed record VaultSearchResult(
     string Path,
@@ -36,6 +60,22 @@ public sealed record VaultCaptureResult(
     bool Appended,
     bool Unchanged,
     string Message);
+
+public sealed record VaultTermCapture(
+    string Term,
+    string Description,
+    IReadOnlyList<string>? Aliases = null,
+    string? Group = null);
+
+public sealed record VaultTermCaptureResult(
+    string Path,
+    string Title,
+    bool Created,
+    bool Updated,
+    bool Unchanged,
+    string Message,
+    IReadOnlyList<string>? Aliases = null,
+    string? Group = null);
 
 public sealed record VaultLearningCapture(
     string Kind,
@@ -57,14 +97,14 @@ public sealed record VaultLearningCapture(
     string? Choice = null,
     string? Consequence = null);
 
-internal sealed record VaultFrontmatter(
+internal sealed record VaultMetadata(
     string? Kind,
     IReadOnlyList<string> Tags,
     IReadOnlyList<string> Aliases,
     IReadOnlyList<string> Related,
     string? Confidence)
 {
-    public static VaultFrontmatter Empty { get; } = new(null, [], [], [], null);
+    public static VaultMetadata Empty { get; } = new(null, [], [], [], null);
 }
 
 internal sealed record VaultIndexedNote(
@@ -74,9 +114,8 @@ internal sealed record VaultIndexedNote(
     string RawContent,
     string BodyContent,
     IReadOnlyList<string> Headings,
-    VaultFrontmatter Frontmatter,
+    VaultMetadata Metadata,
     HashSet<string> ExtractedTerms,
     long FileSizeBytes,
     DateTime LastWriteTimeUtc,
     bool IsIndexTruncated);
-

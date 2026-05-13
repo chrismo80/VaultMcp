@@ -14,25 +14,25 @@ public sealed class RecallContextToolTests
     {
         var termResults = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 1200)
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 1200)
         };
         var searchResults = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 950),
-            new VaultSearchResult("workflows/order-flow.md", "Order Flow", "…order flow…", 320)
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 950),
+            new VaultSearchResult("workflows/order-flow.json", "Order Flow", "…order flow…", 320)
         };
         var relatedResults = new[]
         {
-            new VaultSearchResult("invariants/order-boundary.md", "Order Boundary", "…boundary…", 210)
+            new VaultSearchResult("invariants/order-boundary.json", "Order Boundary", "…boundary…", 210)
         };
         var documents = new Dictionary<string, VaultNoteDocument>(StringComparer.OrdinalIgnoreCase)
         {
-            ["glossary/order.md"] = new("glossary/order.md", "Order", "# Order\n\nCanonical order term."),
-            ["workflows/order-flow.md"] = new("workflows/order-flow.md", "Order Flow", "# Order Flow\n\nStep 1")
+            ["glossary/order.json"] = new("glossary/order.json", "Order", "# Order\n\nCanonical order term."),
+            ["workflows/order-flow.json"] = new("workflows/order-flow.json", "Order Flow", "# Order Flow\n\nStep 1")
         };
 
         var tool = new RecallContextTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 2, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 2, [".json"]),
             [],
             searchResults: searchResults,
             termResults: termResults,
@@ -43,13 +43,13 @@ public sealed class RecallContextToolTests
 
         response.Error.IsNull();
         response.Matches.Count.Is(2);
-        response.Matches[0].Path.Is("glossary/order.md");
-        response.Matches[1].Path.Is("workflows/order-flow.md");
+        response.Matches[0].Path.Is("glossary/order.json");
+        response.Matches[1].Path.Is("workflows/order-flow.json");
         response.Notes.Count.Is(2);
-        response.Notes[0].Path.Is("glossary/order.md");
-        response.Notes[1].Path.Is("workflows/order-flow.md");
+        response.Notes[0].Path.Is("glossary/order.json");
+        response.Notes[1].Path.Is("workflows/order-flow.json");
         response.RelatedNotes.Count.Is(1);
-        response.RelatedNotes[0].Path.Is("invariants/order-boundary.md");
+        response.RelatedNotes[0].Path.Is("invariants/order-boundary.json");
     }
 
     [Fact]
@@ -57,25 +57,25 @@ public sealed class RecallContextToolTests
     {
         var termResults = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 1200)
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 1200)
         };
         var searchResults = new[]
         {
-            new VaultSearchResult("workflows/order-flow.md", "Order Flow", "…order flow…", 320)
+            new VaultSearchResult("workflows/order-flow.json", "Order Flow", "…order flow…", 320)
         };
         var relatedResults = new[]
         {
-            new VaultSearchResult("workflows/order-flow.md", "Order Flow", "…order flow…", 500),
-            new VaultSearchResult("invariants/order-boundary.md", "Order Boundary", "…boundary…", 210)
+            new VaultSearchResult("workflows/order-flow.json", "Order Flow", "…order flow…", 500),
+            new VaultSearchResult("invariants/order-boundary.json", "Order Boundary", "…boundary…", 210)
         };
         var documents = new Dictionary<string, VaultNoteDocument>(StringComparer.OrdinalIgnoreCase)
         {
-            ["glossary/order.md"] = new("glossary/order.md", "Order", "# Order\n\nCanonical order term."),
-            ["workflows/order-flow.md"] = new("workflows/order-flow.md", "Order Flow", "# Order Flow\n\nStep 1")
+            ["glossary/order.json"] = new("glossary/order.json", "Order", "# Order\n\nCanonical order term."),
+            ["workflows/order-flow.json"] = new("workflows/order-flow.json", "Order Flow", "# Order Flow\n\nStep 1")
         };
 
         var tool = new RecallContextTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 2, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 2, [".json"]),
             [],
             searchResults: searchResults,
             termResults: termResults,
@@ -85,14 +85,14 @@ public sealed class RecallContextToolTests
         var response = tool.Execute("order", maxMatches: 5, loadTopNotes: 2, maxCharsPerNote: 6000);
 
         response.RelatedNotes.Count.Is(1);
-        response.RelatedNotes[0].Path.Is("invariants/order-boundary.md");
+        response.RelatedNotes[0].Path.Is("invariants/order-boundary.json");
     }
 
     [Fact]
     public void Execute_returns_structured_error_when_vault_root_is_missing()
     {
         var tool = new RecallContextTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", false, 0, [".md"]),
+            new VaultStatus("/repo/docs/domain", false, 0, [".json"]),
             []));
 
         var response = tool.Execute("order");
@@ -106,18 +106,18 @@ public sealed class RecallContextToolTests
     {
         var searchResults = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 950)
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 950)
         };
         var documents = new Dictionary<string, VaultNoteDocument>(StringComparer.OrdinalIgnoreCase)
         {
-            ["glossary/order.md"] = new("glossary/order.md", "Order", "# Order\n\nCanonical order term.")
+            ["glossary/order.json"] = new("glossary/order.json", "Order", "# Order\n\nCanonical order term.")
         };
         var semanticIndex = new StubSemanticIndex(
             new SemanticIndexStatus("/repo/docs/domain", "/repo/docs/domain/.vault", true, "test", "test-model", true, "test-model", 3, 1, 1, DateTimeOffset.UtcNow),
-            [new SemanticSearchHit("chunk-1", "Glossary/Order.md", "Order", null, 0.91f, "Canonical order term.")]);
+            [new SemanticSearchHit("chunk-1", "Glossary/Order.json", "Order", null, 0.91f, "Canonical order term.")]);
 
         var tool = new RecallContextTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
             searchResults: searchResults,
             documentsByPath: documents), semanticIndex);
@@ -125,7 +125,7 @@ public sealed class RecallContextToolTests
         var response = tool.Execute("order", loadTopNotes: 5, maxCharsPerNote: 6000);
 
         response.Notes.Count.Is(1);
-        response.Notes[0].Path.Is("glossary/order.md");
+        response.Notes[0].Path.Is("glossary/order.json");
     }
 
     [Fact]
@@ -133,18 +133,18 @@ public sealed class RecallContextToolTests
     {
         var termResults = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 1200, "term")
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 1200, "term")
         };
         var semanticIndex = new StubSemanticIndex(
             new SemanticIndexStatus("/repo/docs/domain", "/repo/docs/domain/.vault", true, "test", "test-model", true, "test-model", 3, 1, 1, DateTimeOffset.UtcNow),
             searchException: new InvalidOperationException("semantic search should not run"));
         var documents = new Dictionary<string, VaultNoteDocument>(StringComparer.OrdinalIgnoreCase)
         {
-            ["glossary/order.md"] = new("glossary/order.md", "Order", "# Order\n\nCanonical order term.", Kind: "term")
+            ["glossary/order.json"] = new("glossary/order.json", "Order", "# Order\n\nCanonical order term.", Kind: "term")
         };
 
         var tool = new RecallContextTool(
-            new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 1, [".md"]), [], termResults: termResults, documentsByPath: documents),
+            new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 1, [".json"]), [], termResults: termResults, documentsByPath: documents),
             semanticIndex);
 
         var response = tool.Execute("Order");
@@ -159,16 +159,16 @@ public sealed class RecallContextToolTests
     {
         var searchResults = new[]
         {
-            new VaultSearchResult("pitfalls/order.md", "Order Pitfall", "…retry drift…", 320, "pitfall")
+            new VaultSearchResult("pitfalls/order.json", "Order Pitfall", "…retry drift…", 320, "pitfall")
         };
         var content = "# Intro\n\nAllgemeiner Überblick ohne relevanten Treffer.\n\n## Fehlerbild\n\nRetry drift passiert erst nach manueller Freigabe und verursacht Doppelbuchungen.\n\n## Fix\n\nIdempotenzschlüssel beim Wiedereintritt prüfen.";
         var documents = new Dictionary<string, VaultNoteDocument>(StringComparer.OrdinalIgnoreCase)
         {
-            ["pitfalls/order.md"] = new("pitfalls/order.md", "Order Pitfall", content, Kind: "pitfall")
+            ["pitfalls/order.json"] = new("pitfalls/order.json", "Order Pitfall", content, Kind: "pitfall")
         };
 
         var tool = new RecallContextTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
             searchResults: searchResults,
             documentsByPath: documents));

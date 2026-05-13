@@ -32,7 +32,7 @@ public sealed class CaptureLearningTool
         _semanticIndex = semanticIndex;
     }
     [McpServerTool(Name = "capture_learning", Title = "Capture Learning")]
-    [Description("Persist durable, repo-relevant domain knowledge learned during work into a controlled markdown note. Use for grounded terms, workflows, data flows, invariants, pitfalls, and decisions — not for speculative guesses, temporary task status, duplicates, or raw chat transcript fragments.")]
+    [Description("Persist durable, repo-relevant domain knowledge learned during work into a controlled structured note. Use for grounded terms, workflows, data flows, invariants, pitfalls, and decisions — not for speculative guesses, temporary task status, duplicates, or raw chat transcript fragments.")]
     public CaptureLearningResponse Execute(
         [Description("Learning kind. Canonical values: term, workflow, data-flow, invariant, pitfall, decision. Aliases like glossary, concept, rule, data_flow, and adr are accepted and normalized.")]
         string kind,

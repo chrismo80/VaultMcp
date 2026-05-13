@@ -2,6 +2,7 @@ using System.Numerics.Tensors;
 using System.Text.Json;
 using VaultMcp.Tools.KnowledgeBase.Search.Lexical;
 using VaultMcp.Tools.KnowledgeBase.Vault;
+using VaultMcp.Tools.KnowledgeBase.Vault.Json;
 
 namespace VaultMcp.Tools.KnowledgeBase.SemanticIndex;
 
@@ -35,7 +36,7 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
 
         lock (_sync)
         {
-            var snapshot = BuildSnapshot(EnumerateMarkdownFiles());
+            var snapshot = BuildSnapshot(EnumerateJsonFiles());
             SaveSnapshot(snapshot);
             _snapshot = snapshot;
         }
@@ -58,7 +59,7 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
             }
 
             var rawContent = File.ReadAllText(fullPath);
-            var contentHash = MarkdownChunker.Sha256Hex(rawContent);
+            var contentHash = VaultNoteChunker.Sha256Hex(rawContent);
             if (current.State.Files.TryGetValue(normalizedRelativePath, out var state) && string.Equals(state.ContentHash, contentHash, StringComparison.OrdinalIgnoreCase))
             {
                 _snapshot = current;
@@ -176,7 +177,7 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
         var state = snapshot.State.Files
             .Where(pair => !string.Equals(pair.Key, relativePath, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
-        state[relativePath] = new IndexedFileState(MarkdownChunker.Sha256Hex(rawContent), indexedAt);
+        state[relativePath] = new IndexedFileState(VaultNoteChunker.Sha256Hex(rawContent), indexedAt);
 
         return RebuildSnapshot(_embeddingProvider.ProviderName, _embeddingProvider.ModelName, preserved, state, indexedAt);
     }
@@ -192,7 +193,7 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
             var relativePath = Path.GetRelativePath(_options.RootPath, fullPath);
             var rawContent = File.ReadAllText(fullPath);
             entries.AddRange(BuildChunkEntries(relativePath, rawContent, File.GetLastWriteTimeUtc(fullPath), indexedAt));
-            state[relativePath] = new IndexedFileState(MarkdownChunker.Sha256Hex(rawContent), indexedAt);
+            state[relativePath] = new IndexedFileState(VaultNoteChunker.Sha256Hex(rawContent), indexedAt);
         }
 
         return RebuildSnapshot(_embeddingProvider.ProviderName, _embeddingProvider.ModelName, entries, state, indexedAt);
@@ -200,7 +201,8 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
 
     private List<(ChunkIndexEntry Chunk, float[] Vector)> BuildChunkEntries(string relativePath, string rawContent, DateTime modifiedAtUtc, DateTimeOffset indexedAt)
     {
-        var chunks = MarkdownChunker.Chunk(relativePath, rawContent, modifiedAtUtc, _options.MaxChunkWords, _options.MaxPreviewChars);
+        var parsed = JsonVaultParser.Parse(rawContent, Path.GetFileNameWithoutExtension(relativePath));
+        var chunks = VaultNoteChunker.Chunk(relativePath, parsed, modifiedAtUtc, _options.MaxChunkWords, _options.MaxPreviewChars);
         var results = new List<(ChunkIndexEntry Chunk, float[] Vector)>();
 
         foreach (var chunk in chunks)
@@ -382,7 +384,7 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
         }
     }
 
-    private IEnumerable<string> EnumerateMarkdownFiles()
+    private IEnumerable<string> EnumerateJsonFiles()
     {
         if (!Directory.Exists(_options.RootPath))
             return [];
@@ -394,8 +396,7 @@ public sealed class JsonBinarySemanticIndex : ISemanticIndex
                     return false;
 
                 var extension = Path.GetExtension(path);
-                return string.Equals(extension, ".md", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(extension, ".markdown", StringComparison.OrdinalIgnoreCase);
+                return string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase);
             });
     }
 

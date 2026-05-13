@@ -17,9 +17,9 @@ public sealed record FindRelatedNotesResponse(
 public sealed class FindRelatedNotesTool(IVault vault)
 {
     [McpServerTool(Name = "find_related_notes", Title = "Find Related Notes")]
-    [Description("Find notes related to a given vault note using shared domain terms and directory proximity. Use this after `get_note` when you need broader domain context around a relevant note.")]
+    [Description("Find notes related to a given vault note using shared domain terms, tags, explicit related links, and directory proximity. Use this after `get_note` when you need broader domain context around a relevant note.")]
     public FindRelatedNotesResponse Execute(
-        [Description("Vault-relative markdown path, for example 'workflows/invoice-flow.md'.")]
+        [Description("Vault-relative note path, for example 'workflows/invoice-flow.json'.")]
         string path,
         [Description("Maximum number of related notes to return. Default: 3.")]
         int maxCount = 3)

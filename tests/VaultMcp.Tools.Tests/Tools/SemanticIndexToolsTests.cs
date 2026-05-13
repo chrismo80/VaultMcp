@@ -28,7 +28,7 @@ public sealed class SemanticIndexToolsTests
     [Fact]
     public void SemanticSearchNotes_returns_structured_error_when_index_is_missing()
     {
-        var vault = new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 1, [".md"]), []);
+        var vault = new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 1, [".json"]), []);
         var tool = new SemanticSearchNotesTool(vault, new StubSemanticIndex(ReadyStatus, searchException: new SemanticIndexNotBuiltException("semantic index not built. Call reindex_vault first.")));
 
         var response = tool.Execute("invoice");
@@ -41,7 +41,7 @@ public sealed class SemanticIndexToolsTests
     public void ReindexVault_returns_current_status_after_rebuild()
     {
         var semanticIndex = new StubSemanticIndex(ReadyStatus);
-        var tool = new ReindexVaultTool(new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 1, [".md"]), []), semanticIndex);
+        var tool = new ReindexVaultTool(new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 1, [".json"]), []), semanticIndex);
 
         var response = tool.Execute();
 
@@ -54,9 +54,9 @@ public sealed class SemanticIndexToolsTests
     public void CaptureLearning_reindexes_affected_file_when_semantic_index_is_available()
     {
         var stubVault = new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
-            captureResult: new VaultCaptureResult("glossary/order.md", "Order", "term", true, false, false, "Created."));
+            captureResult: new VaultCaptureResult("glossary/order.json", "Order", "term", true, false, false, "Created."));
         var semanticIndex = new StubSemanticIndex(ReadyStatus);
         var tool = new CaptureLearningTool(stubVault, semanticIndex);
 
@@ -64,7 +64,7 @@ public sealed class SemanticIndexToolsTests
 
         response.Error.IsNull();
         response.IndexError.IsNull();
-        semanticIndex.LastUpsertPath.Is("glossary/order.md");
+        semanticIndex.LastUpsertPath.Is("glossary/order.json");
     }
 
     [Fact]
@@ -72,24 +72,24 @@ public sealed class SemanticIndexToolsTests
     {
         var semanticResults = new[]
         {
-            new SemanticSearchHit("chunk-1", "workflows/order-flow.md", "Order Flow", "Overview", 0.92f, "Order flow preview")
+            new SemanticSearchHit("chunk-1", "workflows/order-flow.json", "Order Flow", "Overview", 0.92f, "Order flow preview")
         };
         var termResults = new[]
         {
-            new VaultSearchResult("glossary/order.md", "Order", "# Order", 1200)
+            new VaultSearchResult("glossary/order.json", "Order", "# Order", 1200)
         };
         var searchResults = new[]
         {
-            new VaultSearchResult("workflows/order-flow.md", "Order Flow", "…order flow…", 320)
+            new VaultSearchResult("workflows/order-flow.json", "Order Flow", "…order flow…", 320)
         };
         var documents = new Dictionary<string, VaultNoteDocument>(StringComparer.OrdinalIgnoreCase)
         {
-            ["workflows/order-flow.md"] = new("workflows/order-flow.md", "Order Flow", "# Order Flow\n\nStep 1"),
-            ["glossary/order.md"] = new("glossary/order.md", "Order", "# Order\n\nCanonical term")
+            ["workflows/order-flow.json"] = new("workflows/order-flow.json", "Order Flow", "# Order Flow\n\nStep 1"),
+            ["glossary/order.json"] = new("glossary/order.json", "Order", "# Order\n\nCanonical term")
         };
 
         var tool = new RecallContextTool(
-            new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 2, [".md"]), [], termResults: termResults, searchResults: searchResults, documentsByPath: documents),
+            new StubKnowledgeVault(new VaultStatus("/repo/docs/domain", true, 2, [".json"]), [], termResults: termResults, searchResults: searchResults, documentsByPath: documents),
             new StubSemanticIndex(ReadyStatus, semanticResults));
 
         var response = tool.Execute("order");
@@ -97,9 +97,9 @@ public sealed class SemanticIndexToolsTests
         response.Error.IsNull();
         response.SemanticError.IsNull();
         response.SemanticMatches.Count.Is(1);
-        response.SemanticMatches[0].Path.Is("workflows/order-flow.md");
+        response.SemanticMatches[0].Path.Is("workflows/order-flow.json");
         response.Matches.Count.Is(2);
-        response.Notes[0].Path.Is("workflows/order-flow.md");
+        response.Notes[0].Path.Is("workflows/order-flow.json");
     }
 
     [Fact]

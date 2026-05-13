@@ -13,11 +13,11 @@ public sealed class SearchNotesToolTests
     {
         var results = new[]
         {
-            new VaultSearchResult("workflows/invoice-flow.md", "Invoice Flow", "…Handles invoice correction…", 245)
+            new VaultSearchResult("workflows/invoice-flow.json", "Invoice Flow", "…Handles invoice correction…", 245)
         };
 
         var tool = new SearchNotesTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", true, 1, [".md"]),
+            new VaultStatus("/repo/docs/domain", true, 1, [".json"]),
             [],
             searchResults: results));
 
@@ -25,7 +25,7 @@ public sealed class SearchNotesToolTests
 
         response.Error.IsNull();
         response.Results.Count.Is(1);
-        response.Results[0].Path.Is("workflows/invoice-flow.md");
+        response.Results[0].Path.Is("workflows/invoice-flow.json");
         response.Results[0].Excerpt.Is("…Handles invoice correction…");
     }
 
@@ -33,7 +33,7 @@ public sealed class SearchNotesToolTests
     public void Execute_returns_structured_error_when_vault_root_is_missing()
     {
         var tool = new SearchNotesTool(new StubKnowledgeVault(
-            new VaultStatus("/repo/docs/domain", false, 0, [".md"]),
+            new VaultStatus("/repo/docs/domain", false, 0, [".json"]),
             []));
 
         var response = tool.Execute("invoice");

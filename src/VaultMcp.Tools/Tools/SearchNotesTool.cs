@@ -17,7 +17,7 @@ public sealed record SearchNotesResponse(
 public sealed class SearchNotesTool(IVault vault)
 {
     [McpServerTool(Name = "search_notes", Title = "Search Notes")]
-    [Description("Search markdown notes lexically by title, path, and content. Use this first for architecture, workflow, rule, or concept questions before asking the user again.")]
+    [Description("Search structured vault notes lexically by title, path, metadata, and rendered content. Use this first for architecture, workflow, rule, or concept questions before asking the user again.")]
     public SearchNotesResponse Execute(
         [Description("Search query, for example a workflow name, business rule, invariant, or subsystem concept.")]
         string query,

@@ -1,22 +1,21 @@
 using System.Security.Cryptography;
 using System.Text;
-using VaultMcp.Tools.KnowledgeBase.Vault.Markdown;
+using VaultMcp.Tools.KnowledgeBase.Vault.Json;
 
 namespace VaultMcp.Tools.KnowledgeBase.SemanticIndex;
 
-internal static class MarkdownChunker
+internal static class VaultNoteChunker
 {
-    public static IReadOnlyList<NoteChunk> Chunk(string relativePath, string rawContent, DateTimeOffset modifiedAt, int maxChunkWords, int maxPreviewChars)
+    public static IReadOnlyList<NoteChunk> Chunk(string relativePath, JsonParsedNote note, DateTimeOffset modifiedAt, int maxChunkWords, int maxPreviewChars)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
-        ArgumentNullException.ThrowIfNull(rawContent);
+        ArgumentNullException.ThrowIfNull(note);
         if (maxChunkWords <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxChunkWords), "maxChunkWords must be greater than zero.");
         if (maxPreviewChars <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxPreviewChars), "maxPreviewChars must be greater than zero.");
 
-        var parsed = VaultMarkdownParser.Parse(rawContent, Path.GetFileNameWithoutExtension(relativePath));
-        var sections = SplitSections(parsed.BodyContent);
+        var sections = SplitSections(note.BodyContent);
         var chunks = new List<NoteChunk>();
         var sectionOrdinal = 0;
 
@@ -35,16 +34,16 @@ internal static class MarkdownChunker
                     continue;
 
                 var chunkId = BuildChunkId(relativePath, section.Heading, sectionOrdinal, partOrdinal);
-                var embeddingText = BuildEmbeddingText(relativePath, parsed.Title, section.Heading, parsed.Frontmatter.Tags, parsed.Frontmatter.Aliases, bodyText);
+                var embeddingText = BuildEmbeddingText(relativePath, note.Title, section.Heading, note.Metadata.Tags, note.Metadata.Aliases, bodyText);
                 chunks.Add(new NoteChunk(
                     chunkId,
                     relativePath,
-                    parsed.Title,
+                    note.Title,
                     section.Heading,
                     embeddingText,
                     BuildPreview(bodyText, maxPreviewChars),
-                    parsed.Frontmatter.Tags.ToArray(),
-                    parsed.Frontmatter.Aliases.ToArray(),
+                    note.Metadata.Tags.ToArray(),
+                    note.Metadata.Aliases.ToArray(),
                     Sha256Hex(relativePath + "\n" + section.Heading + "\n" + bodyText),
                     modifiedAt));
 
@@ -57,21 +56,21 @@ internal static class MarkdownChunker
         if (chunks.Count > 0)
             return chunks;
 
-        var fallbackText = CollapseWhitespace(parsed.BodyContent);
+        var fallbackText = CollapseWhitespace(note.BodyContent);
         if (string.IsNullOrWhiteSpace(fallbackText))
-            fallbackText = parsed.Title;
+            fallbackText = note.Title;
 
         return
         [
             new NoteChunk(
-                BuildChunkId(relativePath, parsed.Title, 0, 0),
+                BuildChunkId(relativePath, note.Title, 0, 0),
                 relativePath,
-                parsed.Title,
+                note.Title,
                 null,
-                BuildEmbeddingText(relativePath, parsed.Title, null, parsed.Frontmatter.Tags, parsed.Frontmatter.Aliases, fallbackText),
+                BuildEmbeddingText(relativePath, note.Title, null, note.Metadata.Tags, note.Metadata.Aliases, fallbackText),
                 BuildPreview(fallbackText, maxPreviewChars),
-                parsed.Frontmatter.Tags.ToArray(),
-                parsed.Frontmatter.Aliases.ToArray(),
+                note.Metadata.Tags.ToArray(),
+                note.Metadata.Aliases.ToArray(),
                 Sha256Hex(relativePath + "\n" + fallbackText),
                 modifiedAt)
         ];
@@ -241,26 +240,5 @@ internal static class MarkdownChunker
     }
 
     private static string ToSlug(string value)
-    {
-        var builder = new StringBuilder(value.Length);
-        var lastWasDash = false;
-
-        foreach (var ch in value.Trim().ToLowerInvariant())
-        {
-            if (char.IsLetterOrDigit(ch))
-            {
-                builder.Append(ch);
-                lastWasDash = false;
-                continue;
-            }
-
-            if (lastWasDash)
-                continue;
-
-            builder.Append('-');
-            lastWasDash = true;
-        }
-
-        return builder.ToString().Trim('-');
-    }
+        => JsonVaultParser.NormalizeKey(value);
 }

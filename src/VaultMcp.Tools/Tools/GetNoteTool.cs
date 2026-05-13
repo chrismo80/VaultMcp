@@ -17,9 +17,9 @@ public sealed record GetNoteResponse(
 public sealed class GetNoteTool(IVault vault)
 {
     [McpServerTool(Name = "get_note", Title = "Get Note")]
-    [Description("Load a markdown note from the configured vault by relative path. Use this after `find_term` or `search_notes` to read the actual stored knowledge before continuing work.")]
+    [Description("Load a structured note from the configured vault by relative path. Use this after `find_term` or `search_notes` to read the actual stored knowledge before continuing work.")]
     public GetNoteResponse Execute(
-        [Description("Vault-relative markdown path, for example 'glossary/order.md'.")]
+        [Description("Vault-relative note path, for example 'glossary/order.json'.")]
         string path,
         [Description("Maximum number of characters to return from the note content. Default: 4000.")]
         int maxChars = 4000)

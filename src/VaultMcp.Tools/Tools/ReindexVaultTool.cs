@@ -16,7 +16,7 @@ public sealed record ReindexVaultResponse(
 public sealed class ReindexVaultTool(IVault vault, ISemanticIndex semanticIndex)
 {
     [McpServerTool(Name = "reindex_vault", Title = "Reindex Vault")]
-    [Description("Maintenance tool that rebuilds the semantic index from markdown source files under the configured vault root. Use only when semantic retrieval is unavailable, stale, broken, after bulk vault changes, or when explicitly requested.")]
+    [Description("Maintenance tool that rebuilds the semantic index from structured source files under the configured vault root. Use only when semantic retrieval is unavailable, stale, broken, after bulk vault changes, or when explicitly requested.")]
     public ReindexVaultResponse Execute()
     {
         if (VaultToolErrors.ValidateReadableVault(vault) is { } vaultError)

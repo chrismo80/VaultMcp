@@ -1,25 +1,26 @@
 using Is.Assertions;
+using System.Text.Json;
 using VaultMcp.Tools.KnowledgeBase;
 using VaultMcp.Tools.KnowledgeBase.Vault;
-using VaultMcp.Tools.KnowledgeBase.Vault.Markdown;
+using VaultMcp.Tools.KnowledgeBase.Vault.Json;
 using VaultMcp.Tools.KnowledgeBase.Search;
 using Xunit;
 
-namespace VaultMcp.Tools.Tests.KnowledgeBase.Vault.Markdown;
+namespace VaultMcp.Tools.Tests.KnowledgeBase.Vault.Json;
 
-public sealed class MarkdownVaultTests : IDisposable
+public sealed class JsonVaultTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "VaultMcp.Tests", Guid.NewGuid().ToString("N"));
 
     [Fact]
-    public void GetStatus_counts_markdown_files_only()
+    public void GetStatus_counts_json_files_only()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, "a.md"), "# A");
-        File.WriteAllText(Path.Combine(_root, "b.markdown"), "# B");
-        File.WriteAllText(Path.Combine(_root, "c.txt"), "ignore");
+        WriteVaultFile(Path.Combine(_root, "a.json"), "# A");
+        WriteVaultFile(Path.Combine(_root, "b.json"), "# B");
+        WriteVaultFile(Path.Combine(_root, "c.txt"), "ignore");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var status = vault.GetStatus();
 
@@ -28,27 +29,27 @@ public sealed class MarkdownVaultTests : IDisposable
     }
 
     [Fact]
-    public void ListNotes_uses_first_heading_as_title_and_relative_paths()
+    public void ListNotes_uses_title_and_relative_paths()
     {
         Directory.CreateDirectory(Path.Combine(_root, "concepts"));
-        File.WriteAllText(Path.Combine(_root, "concepts", "aggregate.md"), "# Aggregate Root\n\nBody");
+        WriteVaultFile(Path.Combine(_root, "concepts", "aggregate.json"), "# Aggregate Root\n\nBody");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var notes = vault.ListNotes();
 
         notes.Count.Is(1);
-        notes[0].Path.Is(Path.Combine("concepts", "aggregate.md"));
+        notes[0].Path.Is(Path.Combine("concepts", "aggregate.json"));
         notes[0].Title.Is("Aggregate Root");
     }
 
     [Fact]
-    public void ListNotes_falls_back_to_file_name_when_heading_is_missing()
+    public void ListNotes_falls_back_to_file_name_when_title_is_missing()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, "pricing.md"), "No heading here");
+        WriteVaultFile(Path.Combine(_root, "pricing.json"), "No heading here");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var notes = vault.ListNotes();
 
@@ -59,13 +60,13 @@ public sealed class MarkdownVaultTests : IDisposable
     public void GetNote_returns_content_and_title_for_relative_path()
     {
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-flow.md"), "# Invoice Flow\n\nStep 1");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-flow.json"), "# Invoice Flow\n\nStep 1");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var note = vault.GetNote(Path.Combine("workflows", "invoice-flow.md"));
+        var note = vault.GetNote(Path.Combine("workflows", "invoice-flow.json"));
 
-        note.Path.Is(Path.Combine("workflows", "invoice-flow.md"));
+        note.Path.Is(Path.Combine("workflows", "invoice-flow.json"));
         note.Title.Is("Invoice Flow");
         note.Content.Is("# Invoice Flow\n\nStep 1");
     }
@@ -74,27 +75,27 @@ public sealed class MarkdownVaultTests : IDisposable
     public void GetNote_accepts_non_native_directory_separators()
     {
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-flow.md"), "# Invoice Flow\n\nStep 1");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-flow.json"), "# Invoice Flow\n\nStep 1");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var note = vault.GetNote(WithForeignSeparators(Path.Combine("workflows", "invoice-flow.md")));
+        var note = vault.GetNote(WithForeignSeparators(Path.Combine("workflows", "invoice-flow.json")));
 
-        note.Path.Is(Path.Combine("workflows", "invoice-flow.md"));
+        note.Path.Is(Path.Combine("workflows", "invoice-flow.json"));
         note.Title.Is("Invoice Flow");
     }
 
     [Fact]
-    public void GetNote_respects_frontmatter_and_max_chars_budget()
+    public void GetNote_respects_metadata_and_max_chars_budget()
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "order.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "order.json"),
             "---\nkind: term\ntags:\n - ordering\naliases:\n - Sales Order\n---\n# Order\n\nThis is a long body section for context budgeting.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var note = vault.GetNote(Path.Combine("glossary", "order.md"), maxChars: 30);
+        var note = vault.GetNote(Path.Combine("glossary", "order.json"), maxChars: 30);
 
         note.Title.Is("Order");
         note.Kind.Is("term");
@@ -108,13 +109,13 @@ public sealed class MarkdownVaultTests : IDisposable
     public void GetNote_hides_internal_learning_hash_markers_from_returned_content()
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "order.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "order.json"),
             "# Order\n\n<!-- vaultmcp:learning-hash=abc123 -->\n\nUseful content.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var note = vault.GetNote(Path.Combine("glossary", "order.md"));
+        var note = vault.GetNote(Path.Combine("glossary", "order.json"));
 
         note.Content.Contains("vaultmcp:learning-hash", StringComparison.OrdinalIgnoreCase).IsFalse();
         note.Content.Contains("Useful content.", StringComparison.Ordinal).IsTrue();
@@ -124,13 +125,13 @@ public sealed class MarkdownVaultTests : IDisposable
     public void GetNote_normalizes_crlf_when_stripping_internal_learning_hash_markers()
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "order.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "order.json"),
             "# Order\r\n\r\n<!-- vaultmcp:learning-hash=abc123 -->\r\n\r\nUseful content.\r\n");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var note = vault.GetNote(Path.Combine("glossary", "order.md"));
+        var note = vault.GetNote(Path.Combine("glossary", "order.json"));
 
         note.Content.Contains('\r').IsFalse();
         note.Content.Contains("Useful content.", StringComparison.Ordinal).IsTrue();
@@ -140,9 +141,9 @@ public sealed class MarkdownVaultTests : IDisposable
     public void GetNote_rejects_path_traversal()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var exception = Record.Exception(() => vault.GetNote(Path.Combine("..", "secrets.md")));
+        var exception = Record.Exception(() => vault.GetNote(Path.Combine("..", "secrets.json")));
 
         exception.IsNotNull();
         exception.Is<ArgumentException>();
@@ -154,46 +155,46 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "concepts"));
         Directory.CreateDirectory(Path.Combine(_root, "pitfalls"));
-        File.WriteAllText(Path.Combine(_root, "concepts", "order.md"), "# Order\n\nOrder aggregate overview.");
-        File.WriteAllText(Path.Combine(_root, "pitfalls", "shipping.md"), "# Shipping\n\nThis flow mentions order twice. Order must be validated.");
+        WriteVaultFile(Path.Combine(_root, "concepts", "order.json"), "# Order\n\nOrder aggregate overview.");
+        WriteVaultFile(Path.Combine(_root, "pitfalls", "shipping.json"), "# Shipping\n\nThis flow mentions order twice. Order must be validated.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("order");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("concepts", "order.md"));
-        results[1].Path.Is(Path.Combine("pitfalls", "shipping.md"));
+        results[0].Path.Is(Path.Combine("concepts", "order.json"));
+        results[1].Path.Is(Path.Combine("pitfalls", "shipping.json"));
     }
 
     [Fact]
     public void SearchNotes_delegates_to_configured_search_implementation()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, "pricing.md"), "# Pricing\n\nBody");
+        WriteVaultFile(Path.Combine(_root, "pricing.json"), "# Pricing\n\nBody");
 
         var expected = new[]
         {
-            new VaultSearchResult("custom.md", "Custom", "Injected", 123)
+            new VaultSearchResult("custom.json", "Custom", "Injected", 123)
         };
 
         var search = new StubSearch(searchNotes: expected);
-        var vault = new MarkdownVault(_root, search);
+        var vault = new JsonVault(_root, search);
 
         var results = vault.SearchNotes("pricing");
 
         search.SearchNotesCalls.Is(1);
         results.Count.Is(1);
-        results[0].Path.Is("custom.md");
+        results[0].Path.Is("custom.json");
     }
 
     [Fact]
     public void SearchNotes_returns_excerpt_around_match()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, "pricing.md"), "# Pricing\n\nThe surcharge rule applies when the fragile order exceeds the threshold.");
+        WriteVaultFile(Path.Combine(_root, "pricing.json"), "# Pricing\n\nThe surcharge rule applies when the fragile order exceeds the threshold.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("fragile");
 
@@ -205,11 +206,11 @@ public sealed class MarkdownVaultTests : IDisposable
     public void SearchNotes_omits_internal_learning_hash_markers_from_excerpts()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(
-            Path.Combine(_root, "pricing.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "pricing.json"),
             "# Pricing\n\n<!-- vaultmcp:learning-hash=abc123 -->\n\nThe fragile order exceeds the threshold.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("fragile");
 
@@ -219,33 +220,33 @@ public sealed class MarkdownVaultTests : IDisposable
     }
 
     [Fact]
-    public void SearchNotes_prefers_heading_matches_over_body_only_matches()
+    public void SearchNotes_prefers_section_matches_over_body_only_matches()
     {
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
         Directory.CreateDirectory(Path.Combine(_root, "notes"));
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-correction.md"), "# Invoice Correction\n\nShort summary.");
-        File.WriteAllText(Path.Combine(_root, "notes", "shipping.md"), "# Shipping\n\nInvoice appears here. Much later the correction process is mentioned too.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-correction.json"), "# Invoice Correction\n\nShort summary.");
+        WriteVaultFile(Path.Combine(_root, "notes", "shipping.json"), "# Shipping\n\nInvoice appears here. Much later the correction process is mentioned too.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("invoice correction");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.md"));
+        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.json"));
     }
 
     [Fact]
     public void SearchNotes_matches_transliterated_query_against_umlaut_note()
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(Path.Combine(_root, "glossary", "fundstück.md"), "# Fundstück\n\nDas Fundstück wird im Archiv erfasst.");
+        WriteVaultFile(Path.Combine(_root, "glossary", "fundstück.json"), "# Fundstück\n\nDas Fundstück wird im Archiv erfasst.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("Fundstueck");
 
         results.Count.Is(1);
-        results[0].Path.Is(Path.Combine("glossary", "fundstück.md"));
+        results[0].Path.Is(Path.Combine("glossary", "fundstück.json"));
     }
 
     [Fact]
@@ -253,41 +254,41 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
         Directory.CreateDirectory(Path.Combine(_root, "notes"));
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-correction.md"), "# Billing\n\nThe invoice correction path starts after rejection.");
-        File.WriteAllText(Path.Combine(_root, "notes", "invoice-and-correction.md"), "# Billing Retry\n\nAn invoice may fail. A manual correction happens later.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-correction.json"), "# Billing\n\nThe invoice correction path starts after rejection.");
+        WriteVaultFile(Path.Combine(_root, "notes", "invoice-and-correction.json"), "# Billing Retry\n\nAn invoice may fail. A manual correction happens later.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("invoice correction");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.md"));
+        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.json"));
     }
 
     [Fact]
     public void ListNotes_refreshes_cached_index_after_external_file_creation()
     {
         Directory.CreateDirectory(_root);
-        using var vault = new MarkdownVault(_root);
+        using var vault = new JsonVault(_root);
 
         vault.ListNotes().Count.Is(0);
 
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(Path.Combine(_root, "glossary", "order.md"), "# Order\n\nCanonical domain term.");
+        WriteVaultFile(Path.Combine(_root, "glossary", "order.json"), "# Order\n\nCanonical domain term.");
 
-        WaitUntil(() => vault.ListNotes().Any(note => string.Equals(note.Path, Path.Combine("glossary", "order.md"), StringComparison.OrdinalIgnoreCase)));
+        WaitUntil(() => vault.ListNotes().Any(note => string.Equals(note.Path, Path.Combine("glossary", "order.json"), StringComparison.OrdinalIgnoreCase)));
     }
 
     [Fact]
     public void SearchNotes_refreshes_cached_index_after_external_file_change()
     {
         Directory.CreateDirectory(_root);
-        File.WriteAllText(Path.Combine(_root, "pricing.md"), "# Pricing\n\nalpha token");
-        using var vault = new MarkdownVault(_root);
+        WriteVaultFile(Path.Combine(_root, "pricing.json"), "# Pricing\n\nalpha token");
+        using var vault = new JsonVault(_root);
 
         vault.SearchNotes("alpha").Count.Is(1);
 
-        File.WriteAllText(Path.Combine(_root, "pricing.md"), "# Pricing\n\nbeta token");
+        WriteVaultFile(Path.Combine(_root, "pricing.json"), "# Pricing\n\nbeta token");
 
         WaitUntil(() =>
         {
@@ -302,17 +303,17 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "data-flows"));
         Directory.CreateDirectory(Path.Combine(_root, "notes"));
-        File.WriteAllText(
-            Path.Combine(_root, "data-flows", "invoice-export.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "data-flows", "invoice-export.json"),
             "---\nkind: data-flow\ntags:\n - reporting\n---\n# Invoice Export\n\nExports approved invoices.");
-        File.WriteAllText(Path.Combine(_root, "notes", "misc.md"), "# Misc\n\nThis note mentions reporting in passing.");
+        WriteVaultFile(Path.Combine(_root, "notes", "misc.json"), "# Misc\n\nThis note mentions reporting in passing.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.SearchNotes("reporting");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("data-flows", "invoice-export.md"));
+        results[0].Path.Is(Path.Combine("data-flows", "invoice-export.json"));
     }
 
     [Fact]
@@ -320,32 +321,32 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
-        File.WriteAllText(Path.Combine(_root, "glossary", "order.md"), "# Order\n\nCanonical domain term.");
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice.md"), "# Invoice Flow\n\nOrder gets processed during invoicing.");
+        WriteVaultFile(Path.Combine(_root, "glossary", "order.json"), "# Order\n\nCanonical domain term.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice.json"), "# Invoice Flow\n\nOrder gets processed during invoicing.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.FindTerm("Order");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("glossary", "order.md"));
+        results[0].Path.Is(Path.Combine("glossary", "order.json"));
         results[0].Title.Is("Order");
     }
 
     [Fact]
-    public void FindTerm_uses_frontmatter_aliases()
+    public void FindTerm_uses_aliases()
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "order.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "order.json"),
             "---\nkind: term\naliases:\n - Sales Order\n---\n# Order\n\nCanonical domain term.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.FindTerm("Sales Order");
 
         results.Count.Is(1);
-        results[0].Path.Is(Path.Combine("glossary", "order.md"));
+        results[0].Path.Is(Path.Combine("glossary", "order.json"));
     }
 
     [Fact]
@@ -353,35 +354,35 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "order.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "order.json"),
             "---\nkind: term\naliases:\n - Sales Order\n---\n# Order\n\nCanonical domain term.");
-        File.WriteAllText(
-            Path.Combine(_root, "workflows", "sales-order.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "workflows", "sales-order.json"),
             "---\nkind: workflow\naliases:\n - Sales Order\n---\n# Sales Order Workflow\n\nDescribes the process.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.FindTerm("Sales Order");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("glossary", "order.md"));
+        results[0].Path.Is(Path.Combine("glossary", "order.json"));
     }
 
     [Fact]
     public void FindTerm_matches_umlaut_query_against_transliterated_note()
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "fundstueck.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "fundstueck.json"),
             "---\nkind: term\n---\n# Fundstueck\n\nDas Fundstueck wird im Archiv erfasst.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.FindTerm("Fundstück");
 
         results.Count.Is(1);
-        results[0].Path.Is(Path.Combine("glossary", "fundstueck.md"));
+        results[0].Path.Is(Path.Combine("glossary", "fundstueck.json"));
     }
 
     [Fact]
@@ -389,19 +390,19 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "glossary"));
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
-        File.WriteAllText(
-            Path.Combine(_root, "glossary", "fundstueck.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "glossary", "fundstueck.json"),
             "---\nkind: term\naliases:\n - Fundstueck\n---\n# Fundstueck\n\nCanonical domain term.");
-        File.WriteAllText(
-            Path.Combine(_root, "workflows", "fundstueck-flow.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "workflows", "fundstueck-flow.json"),
             "---\nkind: workflow\naliases:\n - Fundstueck\n---\n# Fundstueck Workflow\n\nDescribes the process.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var results = vault.FindTerm("Fundstück");
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("glossary", "fundstueck.md"));
+        results[0].Path.Is(Path.Combine("glossary", "fundstueck.json"));
     }
 
     [Fact]
@@ -409,16 +410,16 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
         Directory.CreateDirectory(Path.Combine(_root, "concepts"));
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-flow.md"), "# Invoice Flow\n\nOrder validation happens before invoice correction.");
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-correction.md"), "# Invoice Correction Flow\n\nInvoice correction starts after order validation.");
-        File.WriteAllText(Path.Combine(_root, "concepts", "tenant-boundary.md"), "# Tenant Boundary\n\nTenant segregation across exports.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-flow.json"), "# Invoice Flow\n\nOrder validation happens before invoice correction.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-correction.json"), "# Invoice Correction Flow\n\nInvoice correction starts after order validation.");
+        WriteVaultFile(Path.Combine(_root, "concepts", "tenant-boundary.json"), "# Tenant Boundary\n\nTenant segregation across exports.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var results = vault.FindRelatedNotes(Path.Combine("workflows", "invoice-flow.md"));
+        var results = vault.FindRelatedNotes(Path.Combine("workflows", "invoice-flow.json"));
 
         results.Count.Is(1);
-        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.md"));
+        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.json"));
         (results[0].Score > 0).IsTrue();
     }
 
@@ -427,16 +428,16 @@ public sealed class MarkdownVaultTests : IDisposable
     {
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
         Directory.CreateDirectory(Path.Combine(_root, "concepts"));
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-flow.md"), "# Invoice Flow\n\nOrder validation happens before invoice correction.");
-        File.WriteAllText(Path.Combine(_root, "workflows", "invoice-correction.md"), "# Invoice Correction Flow\n\nInvoice correction starts after order validation.");
-        File.WriteAllText(Path.Combine(_root, "concepts", "tenant-boundary.md"), "# Tenant Boundary\n\nTenant segregation across exports.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-flow.json"), "# Invoice Flow\n\nOrder validation happens before invoice correction.");
+        WriteVaultFile(Path.Combine(_root, "workflows", "invoice-correction.json"), "# Invoice Correction Flow\n\nInvoice correction starts after order validation.");
+        WriteVaultFile(Path.Combine(_root, "concepts", "tenant-boundary.json"), "# Tenant Boundary\n\nTenant segregation across exports.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var results = vault.FindRelatedNotes(WithForeignSeparators(Path.Combine("workflows", "invoice-flow.md")));
+        var results = vault.FindRelatedNotes(WithForeignSeparators(Path.Combine("workflows", "invoice-flow.json")));
 
         results.Count.Is(1);
-        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.md"));
+        results[0].Path.Is(Path.Combine("workflows", "invoice-correction.json"));
     }
 
     [Fact]
@@ -445,29 +446,29 @@ public sealed class MarkdownVaultTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "workflows"));
         Directory.CreateDirectory(Path.Combine(_root, "decisions"));
         Directory.CreateDirectory(Path.Combine(_root, "notes"));
-        File.WriteAllText(
-            Path.Combine(_root, "workflows", "invoice-flow.md"),
-            "---\nkind: workflow\nrelated:\n - decisions/invoice-policy.md\n---\n# Invoice Flow\n\nInvoice correction starts after validation.");
-        File.WriteAllText(
-            Path.Combine(_root, "decisions", "invoice-policy.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "workflows", "invoice-flow.json"),
+            "---\nkind: workflow\nrelated:\n - decisions/invoice-policy.json\n---\n# Invoice Flow\n\nInvoice correction starts after validation.");
+        WriteVaultFile(
+            Path.Combine(_root, "decisions", "invoice-policy.json"),
             "---\nkind: decision\n---\n# Invoice Policy\n\nExplains why invoice correction needs approval.");
-        File.WriteAllText(
-            Path.Combine(_root, "notes", "invoice-terms.md"),
+        WriteVaultFile(
+            Path.Combine(_root, "notes", "invoice-terms.json"),
             "# Invoice Notes\n\nInvoice correction validation invoice correction validation invoice correction validation.");
 
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
-        var results = vault.FindRelatedNotes(Path.Combine("workflows", "invoice-flow.md"));
+        var results = vault.FindRelatedNotes(Path.Combine("workflows", "invoice-flow.json"));
 
         results.Count.Is(2);
-        results[0].Path.Is(Path.Combine("decisions", "invoice-policy.md"));
+        results[0].Path.Is(Path.Combine("decisions", "invoice-policy.json"));
     }
 
     [Fact]
     public void CaptureLearning_creates_new_note_in_bucket_directory()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var result = vault.CaptureLearning(new VaultLearningCapture(
             "term",
@@ -479,28 +480,25 @@ public sealed class MarkdownVaultTests : IDisposable
             Examples: ["Pricing loads the aggregate before discount evaluation."]));
 
         result.Created.IsTrue();
-        result.Path.Is(Path.Combine("glossary", "order-aggregate.md"));
+        result.Path.Is(Path.Combine("glossary", "order-aggregate.json"));
         result.Kind.Is("term");
 
-        var fileContent = File.ReadAllText(Path.Combine(_root, "glossary", "order-aggregate.md"));
-        fileContent.Contains("---", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("kind: term", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("tags:", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("aliases:", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("# Order Aggregate", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("vaultmcp:learning-hash=", StringComparison.Ordinal).IsTrue();
+        var fileContent = File.ReadAllText(Path.Combine(_root, "glossary", "order-aggregate.json"));
+        fileContent.Contains("\"kind\": \"term\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"tags\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"aliases\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"hash\":", StringComparison.Ordinal).IsTrue();
         fileContent.Contains("Defines the aggregate boundary for orders.", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("## Aliases", StringComparison.Ordinal).IsTrue();
         fileContent.Contains("Order Root", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("## Examples", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains(" - domain", StringComparison.OrdinalIgnoreCase).IsTrue();
+        fileContent.Contains("\"examples\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("domain", StringComparison.OrdinalIgnoreCase).IsTrue();
     }
 
     [Fact]
     public void CaptureLearning_appends_to_existing_note_for_same_title()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         vault.CaptureLearning(new VaultLearningCapture(
             "workflow",
@@ -520,18 +518,18 @@ public sealed class MarkdownVaultTests : IDisposable
         second.Appended.IsTrue();
         second.Created.IsFalse();
 
-        var fileContent = File.ReadAllText(Path.Combine(_root, "workflows", "invoice-correction-flow.md"));
-        fileContent.Contains("## Learned", StringComparison.Ordinal).IsTrue();
+        var fileContent = File.ReadAllText(Path.Combine(_root, "workflows", "invoice-correction-flow.json"));
+        fileContent.Contains("\"learnings\"", StringComparison.Ordinal).IsTrue();
         fileContent.Contains("Requires customer notification before resubmission.", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("### Steps", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("1. Notify customer", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"steps\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("Notify customer", StringComparison.Ordinal).IsTrue();
     }
 
     [Fact]
     public void CaptureLearning_returns_unchanged_when_same_learning_is_already_present()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         vault.CaptureLearning(new VaultLearningCapture(
             "invariant",
@@ -556,7 +554,7 @@ public sealed class MarkdownVaultTests : IDisposable
     public void CaptureLearning_uses_deterministic_hash_for_equivalent_content()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         vault.CaptureLearning(new VaultLearningCapture(
             "term",
@@ -584,7 +582,7 @@ public sealed class MarkdownVaultTests : IDisposable
     public void CaptureLearning_normalizes_legacy_aliases_to_canonical_kind()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var result = vault.CaptureLearning(new VaultLearningCapture(
             "glossary",
@@ -594,17 +592,17 @@ public sealed class MarkdownVaultTests : IDisposable
             []));
 
         result.Kind.Is("term");
-        result.Path.Is(Path.Combine("glossary", "payment-allocation.md"));
+        result.Path.Is(Path.Combine("glossary", "payment-allocation.json"));
 
-        var fileContent = File.ReadAllText(Path.Combine(_root, "glossary", "payment-allocation.md"));
-        fileContent.Contains("kind: term", StringComparison.Ordinal).IsTrue();
+        var fileContent = File.ReadAllText(Path.Combine(_root, "glossary", "payment-allocation.json"));
+        fileContent.Contains("\"kind\": \"term\"", StringComparison.Ordinal).IsTrue();
     }
 
     [Fact]
     public void CaptureLearning_renders_structured_sections_for_data_flow()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var result = vault.CaptureLearning(new VaultLearningCapture(
             "data-flow",
@@ -616,22 +614,22 @@ public sealed class MarkdownVaultTests : IDisposable
             Source: "Billing database",
             Sink: "Reporting queue"));
 
-        result.Path.Is(Path.Combine("data-flows", "invoice-export.md"));
+        result.Path.Is(Path.Combine("data-flows", "invoice-export.json"));
 
-        var fileContent = File.ReadAllText(Path.Combine(_root, "data-flows", "invoice-export.md"));
-        fileContent.Contains("## Source", StringComparison.Ordinal).IsTrue();
+        var fileContent = File.ReadAllText(Path.Combine(_root, "data-flows", "invoice-export.json"));
+        fileContent.Contains("\"source\"", StringComparison.Ordinal).IsTrue();
         fileContent.Contains("Billing database", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("## Sink", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"sink\"", StringComparison.Ordinal).IsTrue();
         fileContent.Contains("Reporting queue", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("## Steps", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("1. Read approved invoices", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"steps\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("Read approved invoices", StringComparison.Ordinal).IsTrue();
     }
 
     [Fact]
     public void CaptureLearning_renders_structured_sections_for_decision()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         vault.CaptureLearning(new VaultLearningCapture(
             "decision",
@@ -640,20 +638,20 @@ public sealed class MarkdownVaultTests : IDisposable
             null,
             [],
             Context: "Agents learn small domain facts during implementation.",
-            Choice: "Append structured markdown instead of storing opaque blobs.",
+            Choice: "Append structured json instead of storing opaque blobs.",
             Consequence: "Humans can review diffs, but note growth must stay controlled."));
 
-        var fileContent = File.ReadAllText(Path.Combine(_root, "decisions", "use-append-only-learning-notes.md"));
-        fileContent.Contains("## Context", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("## Choice", StringComparison.Ordinal).IsTrue();
-        fileContent.Contains("## Consequence", StringComparison.Ordinal).IsTrue();
+        var fileContent = File.ReadAllText(Path.Combine(_root, "decisions", "use-append-only-learning-notes.json"));
+        fileContent.Contains("\"context\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"choice\"", StringComparison.Ordinal).IsTrue();
+        fileContent.Contains("\"consequence\"", StringComparison.Ordinal).IsTrue();
     }
 
     [Fact]
     public void CaptureLearning_rejects_unknown_kind()
     {
         Directory.CreateDirectory(_root);
-        var vault = new MarkdownVault(_root);
+        var vault = new JsonVault(_root);
 
         var exception = Record.Exception(() => vault.CaptureLearning(new VaultLearningCapture(
             "random",
@@ -692,6 +690,140 @@ public sealed class MarkdownVaultTests : IDisposable
         => Path.DirectorySeparatorChar == '/'
             ? path.Replace('/', '\\')
             : path.Replace('\\', '/');
+
+    private static void WriteVaultFile(string path, string content)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        if (!string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase) ||
+            content.TrimStart().StartsWith("{", StringComparison.Ordinal))
+        {
+            File.WriteAllText(path, content);
+            return;
+        }
+
+        File.WriteAllText(path, BuildJsonNote(path, content));
+    }
+
+    private static string BuildJsonNote(string path, string content)
+    {
+        var normalized = content.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        var index = 0;
+        string? kind = null;
+        var tags = new List<string>();
+        var aliases = new List<string>();
+        var related = new List<string>();
+
+        if (lines.Length > 0 && lines[0].Trim() == "---")
+        {
+            index = 1;
+            string? currentList = null;
+            for (; index < lines.Length; index++)
+            {
+                var line = lines[index].Trim();
+                if (line == "---")
+                {
+                    index++;
+                    break;
+                }
+
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                if (line.StartsWith("- ", StringComparison.Ordinal) && currentList is not null)
+                {
+                    AddListValue(currentList, line[2..].Trim());
+                    continue;
+                }
+
+                currentList = null;
+                var separator = line.IndexOf(':');
+                if (separator <= 0)
+                    continue;
+
+                var key = line[..separator].Trim().ToLowerInvariant();
+                var value = line[(separator + 1)..].Trim();
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    currentList = key;
+                    continue;
+                }
+
+                switch (key)
+                {
+                    case "kind":
+                        kind = value;
+                        break;
+                    case "tags":
+                    case "aliases":
+                    case "related":
+                        AddListValue(key, value.Trim('"', '\''));
+                        break;
+                }
+            }
+        }
+
+        var title = Path.GetFileNameWithoutExtension(path);
+        var bodyLines = new List<string>();
+        for (; index < lines.Length; index++)
+        {
+            var line = lines[index];
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("<!-- vaultmcp:learning-hash=", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (trimmed.StartsWith("# ", StringComparison.Ordinal) && string.Equals(title, Path.GetFileNameWithoutExtension(path), StringComparison.Ordinal))
+            {
+                title = trimmed[2..].Trim();
+                continue;
+            }
+
+            bodyLines.Add(line);
+        }
+
+        var summary = string.Join("\n", bodyLines).Trim();
+
+        var payload = new
+        {
+            schema = "vault-note/v1",
+            id = $"{(kind ?? "note")}.{Path.GetFileNameWithoutExtension(path)}",
+            kind,
+            title,
+            summary = string.IsNullOrWhiteSpace(summary) ? null : summary,
+            details = (string?)null,
+            tags = tags.Count == 0 ? null : tags,
+            aliases = aliases.Count == 0 ? null : aliases,
+            related = related.Count == 0 ? null : related,
+            confidence = (string?)null,
+            scalars = (object?)null,
+            lists = (object?)null,
+            sections = (object?)null,
+            learnings = (object?)null,
+            meta = (object?)null
+        };
+
+        return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+
+        void AddListValue(string key, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+
+            switch (key)
+            {
+                case "tags":
+                    tags.Add(value);
+                    break;
+                case "aliases":
+                    aliases.Add(value);
+                    break;
+                case "related":
+                    related.Add(value);
+                    break;
+            }
+        }
+    }
 }
 
 internal sealed class StubSearch(

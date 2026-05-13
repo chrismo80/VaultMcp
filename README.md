@@ -1,6 +1,6 @@
 # VaultMcp
 
-VaultMcp is a local-first MCP server that gives coding agents a repo-native knowledge base backed by normal markdown files.
+VaultMcp is a local-first MCP server that gives coding agents a repo-native knowledge base backed by structured JSON files.
 
 Large repos accumulate knowledge that code alone does not explain:
 
@@ -29,7 +29,7 @@ The goal is simple:
 
 No SaaS. No opaque memory store. No AI notes app pretending to be infrastructure.
 
-Just markdown notes, a small MCP surface, and a practical way to stop re-explaining the same repo context.
+Just JSON notes under git, a small MCP surface, and a practical way to stop re-explaining the same repo context.
 
 ## When it makes sense
 
@@ -49,7 +49,7 @@ Typical cases:
 
 ## Core idea
 
-Point VaultMcp at a markdown vault inside the repository, for example:
+Point VaultMcp at a JSON vault inside the repository, for example:
 
 ```text
 docs/domain/
@@ -58,10 +58,11 @@ docs/domain/
 Agents use that vault through a small retrieval/capture loop:
 
 1. `recall_context` as the default first tool for project, domain, and architecture knowledge
-2. `get_note`
-3. `find_related_notes` if needed
-4. do the actual task
-5. `capture_learning` for durable new knowledge
+2. `explain_term` / `compare_terms` / `list_terms` when the task is clearly lexicon-style
+3. `get_note`
+4. `find_related_notes` if needed
+5. do the actual task
+6. `capture_term` or `capture_learning` for durable new knowledge
 
 Use `search_notes` or `find_term` directly when the agent already knows the exact term, title, or phrase it wants to look up.
 
@@ -71,15 +72,43 @@ That turns session memory into reviewable project memory.
 
 | Tool | Purpose |
 | --- | --- |
-| `get_note` | Load a markdown note by vault-relative path with an explicit character budget. |
+| `explain_term` | Explain one domain term or named concept in a lexicon-style response, including nearby concepts and likely follow-up questions. |
+| `compare_terms` | Compare multiple terms side by side when names are similar or easy to confuse. |
+| `list_terms` | List terms by group or category-style query for quick domain exploration. |
+| `capture_term` | Low-friction lexicon write path for new terms, aliases, and primary group assignment. |
+| `get_note` | Load a structured JSON note by vault-relative path with an explicit character budget. |
 | `search_notes` | Exact lexical search across titles, paths, headings, aliases, tags, kind, and content. Best when the agent already knows the term or phrase it wants. |
 | `find_term` | Glossary-style lookup for canonical domain terms and aliases. |
 | `recall_context` | Default first retrieval tool. Combines term lookup, lexical note search, full note loading, related-note expansion, and optional semantic matches. |
 | `find_related_notes` | Expand from one known note into nearby notes via shared terms, tags, explicit links, and directory proximity. |
-| `capture_learning` | Persist durable, repo-relevant knowledge into controlled markdown buckets. Not for speculative, temporary, or chat-noise notes. |
+| `capture_learning` | Persist durable, repo-relevant knowledge into controlled JSON note buckets. Not for speculative, temporary, or chat-noise notes. |
 | `semantic_search_notes` | Specialized semantic retrieval over persisted note chunks after a semantic index exists. Useful for fuzzy or conceptual exploration, not the default first lookup. |
-| `reindex_vault` | Maintenance tool that rebuilds the semantic index from markdown source files under the vault root. Not routine retrieval workflow. |
+| `reindex_vault` | Maintenance tool that rebuilds the semantic index from JSON source files under the vault root. Not routine retrieval workflow. |
 | `index_status` | Diagnostics tool for semantic provider and index health, including model, dimensions, chunk count, and warnings. |
+
+## Design direction: UX-first lexicon surface
+
+The current JSON vault and capture model already make knowledge structured and git-friendly. This PR also adds a first **lexicon-style term lookup surface** on top of that storage.
+
+That means future tool design should bias toward questions agents naturally ask:
+
+- what does this term mean?
+- how does term A differ from term B?
+- which terms belong to this area?
+- how do I add or refine a term safely?
+
+The design goal is **UX first, backend second**:
+
+- keep the mental model small
+- make the obvious tool the right tool
+- avoid leaking storage or graph complexity into the public API
+- derive soft navigation such as `seeAlso` instead of over-modeling it up front
+
+A broader direction for continuing that UX-first API work lives here:
+
+- `design/LEXICON_API_DIRECTION.md` — proposed lexicon-first API surface and field-origin rules for a future UX-focused iteration
+
+This design note still goes beyond the current implementation. The new lexicon tools are intentionally small; the design doc captures the larger direction without forcing the full model into one jump.
 
 ## Knowledge model
 
@@ -101,7 +130,7 @@ Structured capture fields:
 - `pitfall` -> symptom, cause, fix
 - `decision` -> context, choice, consequence
 
-The important constraint is: **structured input still produces normal markdown notes**.
+The important constraint is: **structured input stays structured in storage and is also exposed back to tools as structured output**.
 
 Capture should stay disciplined. Good `capture_learning` inputs are:
 
@@ -123,6 +152,17 @@ That keeps the output:
 - searchable without special infrastructure
 - reusable by agents in later sessions
 
+Each note can now carry both a rendered text view and directly usable structure:
+
+- top-level metadata: `kind`, `tags`, `aliases`, `related`, `confidence`
+- concise text: `summary`, `details`
+- direct scalar fields: `scalars`
+- direct list fields: `lists`
+- typed sections: `sections`
+- append-only captured learnings: `learnings`
+
+That means tools do not have to recover lists or sections by reparsing prose.
+
 ## Retrieval behavior today
 
 Current implementation highlights:
@@ -139,7 +179,7 @@ Current implementation highlights:
 
 Semantic retrieval stays derived and disposable:
 
-- markdown notes remain the source of truth
+- JSON notes remain the source of truth
 - semantic metadata + vectors live under `.vault/`
 - lexical retrieval keeps working when no embedding provider is configured
 
@@ -251,9 +291,10 @@ The useful part is the loop itself: retrieval and persistence reinforce each oth
 
 ## Documentation
 
+- `design/LEXICON_API_DIRECTION.md` — proposed UX-first, lexicon-centered follow-up API design
 - `docs/STARTER_VAULT.md` — practical first vault layout
 - `docs/AGENT_RETRIEVAL_WORKFLOW.md` — retrieval rules and prompt snippets
-- `docs/CAPTURE_EXAMPLES.md` — example markdown output shapes
+- `docs/CAPTURE_EXAMPLES.md` — example JSON output shapes
 - `THIRD_PARTY_NOTICES.md` — third-party attributions (including bundled embedding model)
 
 ## Development

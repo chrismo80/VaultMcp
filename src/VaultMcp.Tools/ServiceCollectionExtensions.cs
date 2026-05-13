@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ModelContextProtocol.Server;
 using VaultMcp.Tools.KnowledgeBase.SemanticIndex;
 using VaultMcp.Tools.KnowledgeBase.Vault;
-using VaultMcp.Tools.KnowledgeBase.Vault.Markdown;
+using VaultMcp.Tools.KnowledgeBase.Vault.Json;
 using VaultMcp.Tools.KnowledgeBase.Search;
 using VaultMcp.Tools.KnowledgeBase.Search.Lexical;
 
@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<IEmbeddingProvider>()));
 
         services.TryAddSingleton<ISearch, LexicalSearch>();
-        services.TryAddSingleton<IVault>(provider => new MarkdownVault(fullRootPath, provider.GetRequiredService<ISearch>()));
+        services.TryAddSingleton<IVault>(provider => new JsonVault(fullRootPath, provider.GetRequiredService<ISearch>()));
 
         foreach (var type in GetTools())
             services.AddSingleton(type);

@@ -30,7 +30,7 @@ internal static class VaultPathGuard
         if (allowedExtensions.Length > 0 &&
             !allowedExtensions.Contains(Path.GetExtension(fullPath), StringComparer.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("Only markdown note paths are allowed.", nameof(relativePath));
+            throw new ArgumentException("Only configured vault note paths are allowed.", nameof(relativePath));
         }
 
         return fullPath;

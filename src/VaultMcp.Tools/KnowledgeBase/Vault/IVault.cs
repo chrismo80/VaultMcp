@@ -9,4 +9,5 @@ public interface IVault
     IReadOnlyList<VaultSearchResult> FindTerm(string term, int maxCount = 10);
     IReadOnlyList<VaultSearchResult> FindRelatedNotes(string relativePath, int maxCount = 5);
     VaultCaptureResult CaptureLearning(VaultLearningCapture learning);
+    VaultTermCaptureResult CaptureTerm(VaultTermCapture term);
 }
